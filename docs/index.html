@@ -1,1 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Search Ranking & Discoverability Capstone</title>
 
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:#f4f7f6;
+  color:#172a2a;
+  line-height:1.7;
+}
+.container{max-width:1050px;margin:auto;padding:40px 22px}
+.hero{
+  background:#dff3eb;
+  padding:65px 30px;
+  border-radius:22px;
+  margin-bottom:30px;
+}
+h1{font-size:44px;line-height:1.15;margin:0 0 15px}
+h2{
+  font-size:28px;
+  margin-top:55px;
+  padding-bottom:8px;
+  border-bottom:2px solid #d8e5e1;
+}
+h3{font-size:20px;margin-top:28px}
+.card{
+  background:white;
+  padding:25px;
+  border-radius:16px;
+  margin:20px 0;
+  box-shadow:0 3px 15px rgba(0,0,0,.05);
+}
+.badges{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}
+.badge{
+  background:white;
+  border:1px solid #b9d4cc;
+  border-radius:7px;
+  padding:5px 11px;
+  font-size:13px;
+}
+.metric-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:15px;
+  margin:25px 0;
+}
+.metric{
+  background:white;
+  padding:22px;
+  border-radius:14px;
+  text-align:center;
+}
+.metric strong{display:block;font-size:31px}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin:20px 0;
+  background:white;
+  border-radius:12px;
+  overflow:hidden;
+}
+th,td{padding:12px;text-align:left;border-bottom:1px solid #e4ece9}
+th{background:#eaf3f0}
+img{
+  max-width:100%;
+  display:block;
+  margin:20px auto;
+  border-radius:12px;
+  background:white;
+}
+ul,ol{padding-left:25px}
+.callout{
+  border-left:5px solid #3d7770;
+  background:#eef6f3;
+  padding:17px 20px;
+  margin:22px 0;
+}
+footer{
+  margin-top:60px;
+  padding:35px 0;
+  border-top:2px solid #d8e5e1;
+  font-size:14px;
+}
+a{color:#246b63}
+@media(max-width:650px){
+  h1{font-size:32px}
+  h2{font-size:24px}
+  .container{padding:25px 15px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<section class="hero">
+  <h1>Google Search Ranking &amp; Discoverability Capstone</h1>
+  <p>
+    A reproducible machine-learning study for prioritizing existing content
+    pages for refresh review using observable search and content-performance signals.
+  </p>
+
+  <div class="badges">
+    <span class="badge">Machine Learning</span>
+    <span class="badge">Search Intelligence</span>
+    <span class="badge">30,000 pages</span>
+    <span class="badge">Client-holdout validation</span>
+    <span class="badge">Decision support</span>
+  </div>
+</section>
+
+<!-- 1. ABSTRACT -->
+<section>
+<h2>Abstract</h2>
+
+<div class="card">
+<p>
+This project asks whether observable content and search-performance signals can
+be used to prioritize pages that may benefit from refresh review. Using an
+anonymized dataset of 30,000 content-page records, I built a reproducible
+content-refresh prioritization pipeline covering feature preparation, leakage
+checks, baseline scoring, model training, validation, and ranked recommendations.
+</p>
+
+<p>
+Three classification models were compared with a transparent rule-based baseline.
+Random Forest was selected using ranking-oriented evaluation and achieved
+<strong>0.74 Precision@50</strong>, compared with <strong>0.24</strong> for the
+baseline on the same evaluation design. The resulting queue is intended as a
+human-review prioritization mechanism rather than proof that refreshing content
+will cause higher rankings, traffic, or revenue.
+</p>
+</div>
+</section>
+
+<!-- 2. INTRODUCTION -->
+<section>
+<h2>Introduction / Problem Statement</h2>
+
+<div class="card">
+<p>
+Content teams can have thousands of existing pages but limited capacity to
+review them. A useful prioritization system should identify pages where the
+available evidence suggests that review may be worthwhile, while keeping the
+final editorial decision with a human reviewer.
+</p>
+
+<p>
+The research question is:
+<strong>
+Can observable content and search-performance signals be used to prioritize
+pages that may benefit from refresh review?
+</strong>
+</p>
+
+<p>
+The decision supported by this work is therefore operational: which existing
+content pages should a team investigate first?
+</p>
+
+<div class="callout">
+<strong>Important framing:</strong>
+The model identifies patterns associated with the defined outcome in the
+dataset. It does not establish a causal relationship between refreshing a
+page and improved search performance.
+</div>
+</div>
+</section>
+
+<!-- 3. DATA -->
+<section>
+<h2>Data</h2>
+
+<div class="card">
+<p>
+The analysis uses the bundled anonymized FlyRank ML internship dataset.
+Each record represents an existing content page. The release contains
+<strong>30,000 rows</strong>.
+</p>
+
+<table>
+<tr>
+<th>Property</th>
+<th>Observed value</th>
+</tr>
+<tr>
+<td>Records</td>
+<td>30,000</td>
+</tr>
+<tr>
+<td>Unique content records</td>
+<td>30,000</td>
+</tr>
+<tr>
+<td>Duplicate content IDs</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Declining-label rows</td>
+<td>16,262</td>
+</tr>
+<tr>
+<td>Declining-label rate</td>
+<td>54.2%</td>
+</tr>
+<tr>
+<td>Historical performance window</td>
+<td>90 days</td>
+</tr>
+<tr>
+<td>Validation design</td>
+<td>Client-holdout</td>
+</tr>
+</table>
+
+<h3>Feature groups</h3>
+
+<p>
+The feature vector uses observable content and search-performance information,
+including search volume, competition, CPC, content type, intent, content size,
+content age, update recency, impressions, clicks, sessions, CTR, average
+position, engagement, scroll behaviour, AI traffic percentage, and appropriate
+historical trend signals.
+</p>
+
+<p>
+Identifiers are retained only as context for grouping and validation and are not
+used as predictive evidence. Private queries, client names, URLs, domains and
+other identifying information are excluded from the public analysis.
+</p>
+
+<h3>Missing data</h3>
+
+<p>
+Missingness was explicitly inspected. Examples include approximately 25.66%
+missingness for word and character counts, 8.23% for search volume, CPC and
+competition, 7.91% for main intent, and 0.42% for scroll rate. The feature
+engineering pipeline handles missing values rather than silently dropping
+records.
+</p>
+</div>
+</section>
+
+<!-- 4. METHODOLOGY -->
+<section>
+<h2>Methodology</h2>
+
+<div class="card">
+
+<h3>Problem formulation</h3>
+
+<p>
+The analysis treats content-refresh prioritization as a supervised binary
+classification and ranking problem. The target is whether a content item
+belongs to the defined declining/review-priority class.
+</p>
+
+<h3>Feature vector</h3>
+
+<p>
+The feature vector combines numerical search-performance and content signals
+with categorical content attributes. Numerical missing values are handled
+during feature preparation and categorical values are encoded for modeling.
+Skewed count variables are transformed where appropriate to reduce the effect
+of heavy tails.
+</p>
+
+<h3>Models</h3>
+
+<p>Three candidate models were compared:</p>
+
+<ul>
+<li>Logistic Regression</li>
+<li>Decision Tree</li>
+<li>Random Forest</li>
+</ul>
+
+<p>
+A transparent rule-based baseline was also constructed so that learned models
+could be evaluated against a simple, interpretable heuristic.
+</p>
+
+<h3>Validation</h3>
+
+<p>
+Validation uses a <strong>client-holdout split</strong>. This avoids randomly
+mixing records associated with the same client between training and evaluation,
+providing a stricter test of generalization across represented clients.
+</p>
+
+<h3>Leakage checks</h3>
+
+<p>
+The workflow checks for label-derived variables, future-window information,
+product flags, identifiers, and private query information. Information that
+would only become available after the prediction decision is not treated as
+predictive evidence.
+</p>
+
+<h3>Ranking</h3>
+
+<p>
+Model probabilities are converted into a ranked review queue. Ranking metrics,
+especially Precision@50, are emphasized because the operational use case is
+selecting a relatively small group of pages for human review.
+</p>
+
+</div>
+</section>
+
+<!-- 5. RESULTS -->
+<section>
+<h2>Results vs Baseline</h2>
+
+<div class="metric-grid">
+  <div class="metric">
+    <strong>0.74</strong>
+    Random Forest Precision@50
+  </div>
+  <div class="metric">
+    <strong>0.24</strong>
+    Baseline Precision@50
+  </div>
+  <div class="metric">
+    <strong>+0.50</strong>
+    Absolute improvement
+  </div>
+  <div class="metric">
+    <strong>0.750</strong>
+    Random Forest ROC-AUC
+  </div>
+</div>
+
+<table>
+<tr>
+<th>Model</th>
+<th>ROC-AUC</th>
+<th>Avg Precision</th>
+<th>Precision@50</th>
+<th>Recall</th>
+<th>F1</th>
+</tr>
+
+<tr>
+<td>Decision Tree</td>
+<td>0.742</td>
+<td>0.575</td>
+<td>0.540</td>
+<td>0.716</td>
+<td>0.634</td>
+</tr>
+
+<tr>
+<td>Logistic Regression</td>
+<td>0.700</td>
+<td>0.522</td>
+<td>0.400</td>
+<td>0.567</td>
+<td>0.566</td>
+</tr>
+
+<tr>
+<td><strong>Random Forest</strong></td>
+<td><strong>0.750</strong></td>
+<td><strong>0.618</strong></td>
+<td><strong>0.740</strong></td>
+<td><strong>0.744</strong></td>
+<td><strong>0.640</strong></td>
+</tr>
+
+<tr>
+<td>Baseline Rules</td>
+<td>0.627</td>
+<td>0.468</td>
+<td>0.240</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</table>
+
+<div class="card">
+<p>
+The Random Forest produced a Precision@50 of <strong>0.74</strong>, compared
+with <strong>0.24</strong> for the transparent baseline. This is a
+<strong>0.50 absolute improvement</strong> in Precision@50 on the evaluated
+split.
+</p>
+
+<p>
+This result indicates a substantially stronger ranking signal for selecting
+a small review set in this evaluation sample. It should be interpreted as
+decision-support evidence, not causal evidence.
+</p>
+</div>
+
+<h3>Most influential observable features</h3>
+
+<table>
+<tr><th>Feature</th><th>Importance</th></tr>
+<tr><td>days_with_impressions</td><td>0.1578</td></tr>
+<tr><td>log_impressions_90d</td><td>0.1282</td></tr>
+<tr><td>avg_position</td><td>0.1090</td></tr>
+<tr><td>content_age_days</td><td>0.0955</td></tr>
+<tr><td>char_count</td><td>0.0426</td></tr>
+<tr><td>word_count</td><td>0.0397</td></tr>
+<tr><td>log_clicks_90d</td><td>0.0346</td></tr>
+<tr><td>ctr</td><td>0.0330</td></tr>
+<tr><td>scroll_rate</td><td>0.0311</td></tr>
+<tr><td>days_with_sessions</td><td>0.0280</td></tr>
+</table>
+
+<p>
+These are model-derived feature-importance measures, not causal effects.
+They indicate which observable variables contributed to model predictions
+within this dataset.
+</p>
+</section>
+
+<!-- CHARTS -->
+<section>
+<h2>Evidence &amp; Model Artifacts</h2>
+
+<div class="card">
+<h3>Suggested action mix</h3>
+<img src="outputs/charts/action_mix.svg"
+     alt="Suggested action mix chart">
+
+<h3>Confidence mix</h3>
+<img src="outputs/charts/confidence_mix.svg"
+     alt="Confidence mix chart">
+
+<h3>Top reason codes</h3>
+<img src="outputs/charts/top_reason_codes.svg"
+     alt="Top reason codes chart">
+
+<h3>Top feature importance</h3>
+<img src="outputs/charts/top_feature_importance.svg"
+     alt="Top feature importance chart">
+
+<h3>Trend distribution</h3>
+<img src="outputs/charts/trend_distribution.svg"
+     alt="Trend distribution chart">
+</div>
+</section>
+
+<!-- 6. LIMITATIONS -->
+<section>
+<h2>Limitations &amp; Honest Framing</h2>
+
+<div class="card">
+<ul>
+<li>
+The model identifies observable patterns associated with the defined
+refresh-review label; it does not establish that refreshing content will
+cause higher rankings, traffic, clicks, or revenue.
+</li>
+
+<li>
+Client-holdout validation helps evaluate generalization across represented
+clients, but it is not equivalent to a random experiment.
+</li>
+
+<li>
+Feature importance describes model behaviour and should not be interpreted
+as causal importance.
+</li>
+
+<li>
+The dataset contains anonymized and aggregated signals, so results may not
+generalize to other datasets or future search conditions.
+</li>
+
+<li>
+Pages with missing or sparse observations may receive less reliable
+predictions.
+</li>
+
+<li>
+The ranked queue is a prioritization aid. Human reviewers should consider
+content quality, search intent, accuracy, freshness and business context.
+</li>
+
+<li>
+The model should not automatically publish, rewrite, delete or materially
+change content without human review.
+</li>
+
+<li>
+Evaluation metrics describe the observed evaluation sample and are not
+guaranteed production performance.
+</li>
+</ul>
+</div>
+</section>
+
+<!-- 7. RECOMMENDATIONS -->
+<section>
+<h2>Ranked Recommendations</h2>
+
+<div class="card">
+<p>
+The ranked refresh queue is the primary decision-support output. Pages near
+the top should receive earlier human review because they have stronger model
+evidence associated with the defined outcome.
+</p>
+
+<ol>
+<li>
+<strong>Review high-priority pages first.</strong>
+Investigate the strongest model-ranked signals before allocating broader
+content resources.
+</li>
+
+<li>
+<strong>Inspect reason codes.</strong>
+Review signals such as declining demand, CTR opportunity, engagement,
+position, content age and trend direction.
+</li>
+
+<li>
+<strong>Check content quality and intent.</strong>
+A high model score does not automatically mean that a page should be
+refreshed. Confirm that the page still satisfies its intended search intent.
+</li>
+
+<li>
+<strong>Choose the final action after human review.</strong>
+Possible treatments include:
+<ul>
+<li><strong>Protect</strong> — no refresh required; continue monitoring.</li>
+<li><strong>Improve</strong> — targeted content, structure or metadata improvements.</li>
+<li><strong>Rewrite</strong> — substantial content changes where justified.</li>
+<li><strong>Merge</strong> — consider consolidation when pages substantially overlap.</li>
+<li><strong>Prune</strong> — consider removal only after separate quality and intent review.</li>
+<li><strong>Monitor</strong> — insufficient evidence for immediate action.</li>
+</ul>
+</li>
+
+<li>
+<strong>Record the final decision.</strong>
+Keep model recommendations separate from the final human decision so future
+analysis can distinguish model ranking from reviewer judgement.
+</li>
+</ol>
+
+<div class="callout">
+<strong>Production principle:</strong>
+The queue tells a team where attention may be most useful first. It does not
+make the final content-management decision.
+</div>
+</div>
+</section>
+
+<!-- 8. REPRODUCIBILITY -->
+<section>
+<h2>Reproducibility</h2>
+
+<div class="card">
+<p>
+The work is organized as a reproducible repository-based workflow. The
+notebooks cover the research question, ML task framing, data contract,
+feature/leakage checks, baseline scoring, signal auditing, model training,
+validation auditing, action recommendations and the final capstone.
+</p>
+
+<p>
+The reference pipeline prepares the feature vector, builds the baseline,
+trains the candidate models, evaluates the ranked queue, generates charts,
+writes the Markdown model report and produces the PDF summary.
+</p>
+
+<p>
+The final pipeline successfully processed and scored all
+<strong>30,000 records</strong> and selected Random Forest as the best model
+under the evaluation criterion.
+</p>
+
+<p>
+The repository contains the generated model report and chart artifacts used
+to support this paper.
+</p>
+</div>
+</section>
+
+<!-- ML-12 -->
+<section>
+<h2>5-Minute Demo Outline</h2>
+
+<div class="card">
+<ol>
+<li><strong>0:00–0:45 — Problem:</strong> Explain the research question and review-prioritization problem.</li>
+<li><strong>0:45–1:30 — Data:</strong> Introduce the anonymized page-level dataset and observable search/content signals.</li>
+<li><strong>1:30–2:15 — Method:</strong> Explain the declining-content label, feature vector, baseline and three models.</li>
+<li><strong>2:15–3:15 — Validation &amp; results:</strong> Explain the client-holdout design and compare Precision@50.</li>
+<li><strong>3:15–4:15 — Recommendations:</strong> Show how model scores become a ranked human-review queue.</li>
+<li><strong>4:15–5:00 — Limitations:</strong> Explain that the system is decision-support, not causal proof or autonomous content management.</li>
+</ol>
+</div>
+
+<h2>Social-Post Cut</h2>
+
+<div class="card">
+<p>
+Built a content-refresh prioritization system using anonymized search and
+content-performance data. I compared a transparent baseline with Logistic
+Regression, Decision Tree and Random Forest models using client-holdout
+validation.
+</p>
+
+<p>
+Random Forest achieved <strong>0.74 Precision@50</strong> versus
+<strong>0.24</strong> for the baseline. The final output is a human-review
+queue rather than an automated publishing system.
+</p>
+
+<p>
+The project covers feature engineering, leakage prevention, validation,
+ranking-oriented evaluation and translating model outputs into actionable
+content-review recommendations.
+</p>
+</div>
+
+<h2>Employer-Facing Summary</h2>
+
+<div class="card">
+<p>
+I built an end-to-end ML decision-support pipeline that prioritizes existing
+content pages for refresh review using observable search and engagement signals.
+</p>
+
+<p>
+I implemented a transparent baseline, trained and compared three classification
+models, and evaluated them using a client-holdout validation design. Random
+Forest achieved 0.74 Precision@50 compared with 0.24 for the baseline.
+</p>
+
+<p>
+The project demonstrates practical skills in feature engineering, leakage
+prevention, validation design, ranking-oriented evaluation, reproducible
+pipelines and translating model outputs into actionable human-review
+recommendations.
+</p>
+</div>
+</section>
+
+<!-- 9. ACKNOWLEDGMENTS -->
+<section>
+<h2>Acknowledgments &amp; Data Credit</h2>
+
+<div class="card">
+<p>
+Built on the FlyRank ML Internship dataset and developed as part of the
+FlyRank machine-learning internship track.
+</p>
+
+<p>
+Data and program context:
+<a href="https://flyrank.ai" target="_blank" rel="noopener">
+FlyRank
+</a>
+</p>
+
+<p>
+The analysis uses anonymized data and intentionally avoids exposing client
+names, domains, private queries, credentials or other private information.
+</p>
+</div>
+</section>
+
+<footer>
+<strong>Google Search Ranking &amp; Discoverability Capstone</strong><br>
+Machine Learning · Search Intelligence · Content Refresh Prioritization
+</footer>
+
+</div>
+
+</body>
+</html>
